@@ -1,0 +1,51 @@
+version: '3'
+
+services:
+  db:
+    image: mysql:5.7
+    volumes:
+      - db_data:/var/lib/mysql
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: somewordpress
+      MYSQL_DATABASE: wordpress
+      MYSQL_USER: wordpress
+      MYSQL_PASSWORD: wordpress
+  phpmyadmin:
+    image: phpmyadmin/phpmyadmin:latest
+    ports:
+      - "2223:80"
+    links:
+      - db:mysql
+  wordpress:
+    depends_on:
+      - db
+    image: wordpress:latest
+    volumes:
+      # Mount the uploads folder so that it precist when stopping the cotnainer and you can can prefrom action on it
+      - ./uploads:/var/www/html/wp-content/uploads
+      # Setup the project with some default plugins place them in the root in a folder named /plugins
+      - ./plugins:/var/www/html/wp-content/plugins
+      # Add our default theme for development place it in the root in a folder named /alloy-sage
+      - ./alloy-sage:/var/www/html/wp-content/themes/alloy-sage
+    ports:
+      - "8080:80"
+    restart: always
+    environment:
+      WORDPRESS_DB_HOST: db:3306
+      WORDPRESS_DB_USER: wordpress
+      WORDPRESS_DB_PASSWORD: wordpress
+  node:
+    build: .
+    restart: 'no'
+    working_dir: /var/www/html/wp-content/themes/alloy-sage
+    command: >
+      bash -c "yarn
+      && yarn run build
+      && yarn run start"
+    volumes:
+      - ./alloy-sage:/var/www/html/wp-content/themes/alloy-sage
+    depends_on:
+      - wordpress
+volumes:
+  db_data:
